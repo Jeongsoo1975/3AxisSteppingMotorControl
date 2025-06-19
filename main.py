@@ -55,10 +55,10 @@ class CncControllerApp:
         self.notebook.pack(padx=10, pady=5, expand=True, fill="both")
 
         normal_mode_frame = ttk.Frame(self.notebook, padding=10)
-        test_mode_frame = ttk.Frame(self.notebook, padding=10)
+        setting_mode_frame = ttk.Frame(self.notebook, padding=10)
 
         self.notebook.add(normal_mode_frame, text="Normal Mode")
-        self.notebook.add(test_mode_frame, text="Test Mode")
+        self.notebook.add(setting_mode_frame, text="Setting Mode")
 
         status_frame = ttk.LabelFrame(root, text="Arduino Status")
         status_frame.pack(padx=10, pady=(0, 10), fill="both", expand=True)
@@ -125,7 +125,7 @@ class CncControllerApp:
 
         self.move_all_button = ttk.Button(system_controls_frame, text="Move All Axes",
                                           command=self.send_move_all_command)
-        self.move_all_button.pack(side=tk.LEFT, padx=5, pady=5, expand=True, fill="x")
+        # self.move_all_button.pack(side=tk.LEFT, padx=5, pady=5, expand=True, fill="x")  # Hidden for now
         self.home_button = ttk.Button(system_controls_frame, text="Homing", command=self.send_home_command)
         self.home_button.pack(side=tk.LEFT, padx=5, pady=5, expand=True, fill="x")
         self.reverse_direction_var = tk.BooleanVar()
@@ -135,13 +135,46 @@ class CncControllerApp:
                                               variable=self.reverse_direction_var, style="Switch.TCheckbutton")
         self.reverse_toggle.pack(side=tk.LEFT, padx=5, pady=5, expand=True, fill="x")
 
-        # 테스트 모드 위젯들
-        ttk.Label(test_mode_frame, text="Move X-Axis to:").grid(row=0, column=0, padx=5, pady=8, sticky="w")
-        self.x_test_entry = ttk.Entry(test_mode_frame, width=10);
-        self.x_test_entry.grid(row=0, column=1, padx=5, pady=8);
-        self.x_test_entry.insert(0, "100")
-        self.x_test_button = ttk.Button(test_mode_frame, text="Move X (Test)", command=self.send_x_test_command);
-        self.x_test_button.grid(row=0, column=2, padx=5, pady=8)
+        # 설정 모드 위젯들
+        settings_frame = ttk.LabelFrame(setting_mode_frame, text="Max Position Settings")
+        settings_frame.pack(fill="x", expand=True, pady=(0, 10))
+
+        ttk.Label(settings_frame, text="Axis", font=('Helvetica', 9, 'bold')).grid(row=0, column=0, padx=5, pady=5)
+        ttk.Label(settings_frame, text="Max Position", font=('Helvetica', 9, 'bold')).grid(row=0, column=1, padx=5, pady=5)
+
+        ttk.Label(settings_frame, text="X-Axis:").grid(row=1, column=0, padx=5, pady=8, sticky="w")
+        self.setting_x_max_entry = ttk.Entry(settings_frame, width=15)
+        self.setting_x_max_entry.grid(row=1, column=1, padx=5, pady=8)
+
+        ttk.Label(settings_frame, text="Y-Axis:").grid(row=2, column=0, padx=5, pady=8, sticky="w")
+        self.setting_y_max_entry = ttk.Entry(settings_frame, width=15)
+        self.setting_y_max_entry.grid(row=2, column=1, padx=5, pady=8)
+
+        ttk.Label(settings_frame, text="Z-Axis:").grid(row=3, column=0, padx=5, pady=8, sticky="w")
+        self.setting_z_max_entry = ttk.Entry(settings_frame, width=15)
+        self.setting_z_max_entry.grid(row=3, column=1, padx=5, pady=8)
+
+        # 홈잉 설정
+        homing_frame = ttk.LabelFrame(setting_mode_frame, text="Homing Settings")
+        homing_frame.pack(fill="x", expand=True, pady=(0, 10))
+
+        ttk.Label(homing_frame, text="Homing Speed (All axes):").grid(row=0, column=0, padx=5, pady=8, sticky="w")
+        self.homing_speed_entry = ttk.Entry(homing_frame, width=15)
+        self.homing_speed_entry.grid(row=0, column=1, padx=5, pady=8)
+
+        ttk.Label(homing_frame, text="Backoff Pulses (All axes):").grid(row=1, column=0, padx=5, pady=8, sticky="w")
+        self.backoff_pulses_entry = ttk.Entry(homing_frame, width=15)
+        self.backoff_pulses_entry.grid(row=1, column=1, padx=5, pady=8)
+
+        # 설정 저장 버튼
+        button_frame = ttk.Frame(setting_mode_frame)
+        button_frame.pack(fill="x", expand=True, pady=(10, 0))
+        
+        self.apply_settings_button = ttk.Button(button_frame, text="Apply Settings", command=self.apply_settings)
+        self.apply_settings_button.pack(side=tk.LEFT, padx=5, pady=5, expand=True, fill="x")
+        
+        self.reset_settings_button = ttk.Button(button_frame, text="Reset to Default", command=self.reset_settings)
+        self.reset_settings_button.pack(side=tk.LEFT, padx=5, pady=5, expand=True, fill="x")
 
         self.status_text = tk.Text(status_frame, height=10, state="disabled", wrap="word")
         self.status_text.pack(padx=5, pady=5, fill="both", expand=True)
@@ -158,7 +191,9 @@ class CncControllerApp:
             'com_port': self.port_combobox.get(),
             'x_max': self.x_max_entry.get(),
             'y_max': self.y_max_entry.get(),
-            'z_max': self.z_max_entry.get()
+            'z_max': self.z_max_entry.get(),
+            'homing_speed': getattr(self, 'homing_speed_entry', None) and self.homing_speed_entry.get() or '800',
+            'backoff_pulses': getattr(self, 'backoff_pulses_entry', None) and self.backoff_pulses_entry.get() or '50'
         }
         try:
             with open(self.settings_file, 'w') as configfile:
@@ -176,6 +211,13 @@ class CncControllerApp:
             self.x_max_entry.insert(0, "10000")
             self.y_max_entry.insert(0, "10000")
             self.z_max_entry.insert(0, "10000")
+            # 설정 모드 기본값 설정
+            if hasattr(self, 'setting_x_max_entry'):
+                self.setting_x_max_entry.insert(0, "10000")
+                self.setting_y_max_entry.insert(0, "10000")
+                self.setting_z_max_entry.insert(0, "10000")
+                self.homing_speed_entry.insert(0, "800")
+                self.backoff_pulses_entry.insert(0, "50")
             return
 
         try:
@@ -186,11 +228,21 @@ class CncControllerApp:
             x_max = settings.get('x_max', '10000')
             y_max = settings.get('y_max', '10000')
             z_max = settings.get('z_max', '10000')
+            homing_speed = settings.get('homing_speed', '800')
+            backoff_pulses = settings.get('backoff_pulses', '50')
 
             # Max 값 설정
             self.x_max_entry.insert(0, x_max)
             self.y_max_entry.insert(0, y_max)
             self.z_max_entry.insert(0, z_max)
+
+            # 설정 모드 값 설정
+            if hasattr(self, 'setting_x_max_entry'):
+                self.setting_x_max_entry.insert(0, x_max)
+                self.setting_y_max_entry.insert(0, y_max)
+                self.setting_z_max_entry.insert(0, z_max)
+                self.homing_speed_entry.insert(0, homing_speed)
+                self.backoff_pulses_entry.insert(0, backoff_pulses)
 
             # COM 포트 설정 및 자동 연결 시도
             if saved_port and saved_port in self.ports:
@@ -279,10 +331,23 @@ class CncControllerApp:
             return None
 
     def send_home_command(self):
+        # 설정 파일에서 홈잉 속도와 백오프 값 읽기
+        try:
+            config = configparser.ConfigParser()
+            config.read(self.settings_file)
+            settings = config['Settings']
+            homing_speed = settings.get('homing_speed', '800')
+            backoff_pulses = settings.get('backoff_pulses', '50')
+        except:
+            homing_speed = '800'
+            backoff_pulses = '50'
+        
         if self.reverse_direction_var.get():
-            self.send_command("HOME_REVERSED")
+            self.send_command(f"HOME_REVERSED,S{homing_speed},B{backoff_pulses}")
         else:
-            self.send_command("HOME")
+            self.send_command(f"HOME,S{homing_speed},B{backoff_pulses}")
+        
+        self.update_status(f"Homing command sent with speed: {homing_speed}, backoff: {backoff_pulses} pulses.\n")
 
     def send_move_all_command(self):
         x = self.get_validated_value(self.x_entry, self.x_max_entry)
@@ -302,19 +367,63 @@ class CncControllerApp:
         val = self.get_validated_value(self.z_entry, self.z_max_entry)
         if val is not None: self.send_command(f"Z{val}")
 
-    def send_x_test_command(self):
+    def apply_settings(self):
+        """설정 모드에서 설정한 값들을 적용하고 저장합니다."""
         try:
-            multiplier = -1 if self.reverse_direction_var.get() else 1
-            value = int(self.x_test_entry.get()) * multiplier
-            self.send_command(f"X{value}")
+            # 값 검증
+            x_max = int(self.setting_x_max_entry.get()) if self.setting_x_max_entry.get() else 10000
+            y_max = int(self.setting_y_max_entry.get()) if self.setting_y_max_entry.get() else 10000
+            z_max = int(self.setting_z_max_entry.get()) if self.setting_z_max_entry.get() else 10000
+            homing_speed = int(self.homing_speed_entry.get()) if self.homing_speed_entry.get() else 800
+            backoff_pulses = int(self.backoff_pulses_entry.get()) if self.backoff_pulses_entry.get() else 50
+
+            # Normal Mode의 Max 값 업데이트
+            self.x_max_entry.delete(0, tk.END)
+            self.x_max_entry.insert(0, str(x_max))
+            self.y_max_entry.delete(0, tk.END)
+            self.y_max_entry.insert(0, str(y_max))
+            self.z_max_entry.delete(0, tk.END)
+            self.z_max_entry.insert(0, str(z_max))
+
+            # 설정 저장
+            self.save_settings()
+            messagebox.showinfo("Settings Applied", f"Settings have been applied and saved successfully!\n\nMax Positions: X={x_max}, Y={y_max}, Z={z_max}\nHoming Speed: {homing_speed}\nBackoff Pulses: {backoff_pulses}")
+            self.update_status(f"Settings applied and saved - Homing Speed: {homing_speed}, Backoff: {backoff_pulses} pulses.\n")
+
         except ValueError:
-            messagebox.showerror("Invalid Input", "Please enter a valid integer for X in Test Mode.")
+            messagebox.showerror("Invalid Input", "Please enter valid integer values for all settings.")
 
-    def send_y_test_command(self):
-        pass
+    def reset_settings(self):
+        """설정을 기본값으로 리셋합니다."""
+        # 설정 모드 기본값으로 리셋
+        self.setting_x_max_entry.delete(0, tk.END)
+        self.setting_x_max_entry.insert(0, "10000")
+        self.setting_y_max_entry.delete(0, tk.END)
+        self.setting_y_max_entry.insert(0, "10000")
+        self.setting_z_max_entry.delete(0, tk.END)
+        self.setting_z_max_entry.insert(0, "10000")
+        
+        self.homing_speed_entry.delete(0, tk.END)
+        self.homing_speed_entry.insert(0, "800")
+        self.backoff_pulses_entry.delete(0, tk.END)
+        self.backoff_pulses_entry.insert(0, "50")
+        
+        self.update_status("Settings reset to default values (Max: 10000, Homing Speed: 800, Backoff: 50).\n")
 
-    def send_z_test_command(self):
-        pass
+    # 기존 테스트 함수들 (사용하지 않음)
+    # def send_x_test_command(self):
+    #     try:
+    #         multiplier = -1 if self.reverse_direction_var.get() else 1
+    #         value = int(self.x_test_entry.get()) * multiplier
+    #         self.send_command(f"X{value}")
+    #     except ValueError:
+    #         messagebox.showerror("Invalid Input", "Please enter a valid integer for X in Test Mode.")
+
+    # def send_y_test_command(self):
+    #     pass
+
+    # def send_z_test_command(self):
+    #     pass
 
     def update_status(self, message):
         self.status_text.config(state="normal");

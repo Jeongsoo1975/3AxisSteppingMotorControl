@@ -1,6 +1,8 @@
 [Settings]
-com_port = COM7
+com_port = COM17
 x_max = 12000
 y_max = 10000
 z_max = 10000
+homing_speed = 200
+backoff_pulses = 100
 

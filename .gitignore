@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE and Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Compressed files
+*.zip
+*.rar
+*.7z
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+
+# Build and Distribution
+build/
+dist/
+*.spec
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Windows
+desktop.ini
+
+# Hidden folders (starting with dot)
+.*/ 
